@@ -25,7 +25,6 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --env PGPASSWORD=postgres
           --health-cmd="pg_isready -U test_user -d testing_db"
           --health-interval=10s
           --health-timeout=5s
@@ -42,31 +41,6 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.12"
-
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install -r dev-service/requirements.txt
-          pip install pytest pytest-html pytest-cov requests psycopg2-binary
-
-      - name: Wait for PostgreSQL
-        run: |
-          export PGPASSWORD=$POSTGRES_PASSWORD
-          for i in {1..30}; do
-            pg_isready -h $POSTGRES_HOST -p $POSTGRES_PORT -U $POSTGRES_USER
-            if [ $? -eq 0 ]; then
-              echo "PostgreSQL is ready"
-              break
-            fi
-            echo "Waiting for PostgreSQL..."
-            sleep 2
-          done
-
-      # Build and run the service container
       - name: Build service Docker image
         run: docker build -t sample-service ./dev-service
 
@@ -95,6 +69,17 @@ jobs:
           docker logs sample_service
           exit 1
 
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r dev-service/requirements.txt
+          pip install pytest pytest-html pytest-cov requests psycopg2-binary
+
       - name: Run Tests
         run: |
           mkdir -p reports
@@ -114,7 +99,6 @@ jobs:
 
       - name: Send Test Report Email
         uses: dawidd6/action-send-mail@v3
-        # if: always()
         with:
           server_address: smtp.gmail.com
           server_port: 465
