@@ -31,7 +31,7 @@ jobs:
           --health-retries=5
 
     env:
-      POSTGRES_HOST: postgres
+      POSTGRES_HOST: localhost
       POSTGRES_PORT: 5432
       POSTGRES_USER: test_user
       POSTGRES_PASSWORD: postgres
@@ -51,18 +51,6 @@ jobs:
           pip install --upgrade pip
           pip install -r dev-service/requirements.txt
           pip install pytest pytest-html pytest-cov requests psycopg2-binary
-
-      - name: Install PostgreSQL client
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client
-
-      # - name: Wait for PostgreSQL
-      #   run: |
-      #     echo "Waiting for PostgreSQL to be ready..."
-      #     export PGPASSWORD=$POSTGRES_PASSWORD
-      #     timeout 60 bash -c 'until pg_isready -h $POSTGRES_HOST -p $POSTGRES_PORT -U $POSTGRES_USER -d $POSTGRES_DB; do sleep 2; done'
-      #     echo "PostgreSQL is ready!"
 
       - name: Initialize Database
         run: python dev-service/init_db.py
