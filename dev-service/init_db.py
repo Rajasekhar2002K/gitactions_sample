@@ -11,7 +11,7 @@ def run_migrations():
     )
     cur = conn.cursor()
 
-    with open("init_db.sql", "r") as f:
+    with open("dev-service/init_db.sql", "r") as f:
         sql = f.read()
 
     cur.execute(sql)
