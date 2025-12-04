@@ -2,11 +2,11 @@ name: Simple Microservice CI
 
 on:
   push:
-    branches: 
+    branches:
       - main
       - "feature/*"
-      # - "bugfix/*"
-      # - "hotfix/*"
+      - "bugfix/*"
+      - "hotfix/*"
   pull_request:
     branches:
       - main
@@ -29,7 +29,7 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
-    
+
     env:
       POSTGRES_HOST: localhost
       POSTGRES_PORT: 5432
@@ -38,27 +38,23 @@ jobs:
       POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
 
     steps:
-      # Checkout repo
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      # Setup Python for test scripts
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.12"
 
-      # Install test dependencies
       - name: Install test deps
-        run: pip install --upgrade pip
-      - run: pip install pytest requests pytest-html pytest-cov
+        run: |
+          pip install --upgrade pip
+          pip install pytest requests pytest-html pytest-cov
 
-      # Cleanup existing container (if any)
-      - name: Cleanup existing container
-        run: docker rm -f sample_service || true
+      - name: Build service docker image
+        run: docker build -t sample-service ./dev-service
 
-      # Build service docker image
-      - name: Build Service
+      - name: Run service container
         run: |
           docker run -d --name sample_service \
             -e POSTGRES_HOST=$POSTGRES_HOST \
@@ -69,41 +65,34 @@ jobs:
             -p 5000:5000 \
             sample-service
 
-      # Run service container
-      - name: Run container
-        run: |
-          docker run -d --name sample_service \
-            --env-file env/test.env \
-            -p 5000:5000 \
-            sample-service
-
-      # Wait for service to be ready
       - name: Wait for service
         run: |
           for i in {1..15}; do
             if curl -s http://localhost:5000/ping; then
               echo "Service is up"
-              break
+              exit 0
             fi
             echo "Waiting for service..."
             sleep 2
           done
+          echo "Service did not start in time"
+          docker logs sample_service
+          exit 1
 
-      # Run Tests
       - name: Run Tests
         run: |
           mkdir -p reports
           pytest tests/ --html=reports/test-report.html --self-contained-html --cov=dev-service --cov-report=xml
 
-      # Upload Test Report
-      - name: Upload Report
+      - name: Upload Test Report
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: test-report
           path: reports/
 
-      - name: Send Test Report via Email
-        if: always()  # Run even if previous steps failed
+      - name: Send Test Report Email
+        if: always()
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
@@ -114,14 +103,9 @@ jobs:
           to: ${{ secrets.EMAIL_TO }}
           from: ${{ secrets.EMAIL_USERNAME }}
           content_type: text/html
-          body: "Test report attached"
+          body: "Test report is attached."
           attachments: reports/test-report.html
-            
-      # Stop container
-      - name: Stop Service
-        run: docker stop sample_service
 
-      # Clean test DB / env (optional)
-      - name: Cleanup test environment
-        run: |
-          rm -f dev-service/test.db
+      - name: Stop Service
+        if: always()
+        run: docker stop sample_service || true
