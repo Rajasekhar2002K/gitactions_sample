@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtualenvs
+env/
+venv/
+.venv/
+.ENV/
+ENV/
+
+# Pytest
+.pytest_cache/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# DBs / local files
+*.db
+*.sqlite
+test.db
+
+# Logs, reports, artifacts (keep them out of git; CI will upload artifacts)
+reports/
+logs/
+*.log
+
+# Docker
+docker-compose.override.yml
+
+# GitHub / CI
+.github/*.key
