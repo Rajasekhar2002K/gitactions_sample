@@ -26,12 +26,12 @@ jobs:
           - 5432:5432
         options: >-
           --health-cmd="pg_isready -U test_user"
-          --health-interval=10s
+          --health-interval=5s
           --health-timeout=5s
           --health-retries=10
 
     env:
-      POSTGRES_HOST: postgres
+      POSTGRES_HOST: postgres   # Use the service name
       POSTGRES_PORT: 5432
       POSTGRES_USER: test_user
       POSTGRES_PASSWORD: postgres
@@ -72,12 +72,10 @@ jobs:
               echo "Service is up"
               exit 0
             fi
-            echo "Waiting..."
+            echo "Waiting for service..."
             sleep 2
           done
-
           echo "Service failed to start"
-          docker logs postgres
           docker logs sample_service
           exit 1
 
