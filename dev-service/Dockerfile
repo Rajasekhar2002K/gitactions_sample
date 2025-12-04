@@ -2,15 +2,17 @@ FROM python:3.9-slim
 
 WORKDIR /app
 
-# Install system dependencies for psycopg2
-RUN apt-get update && apt-get install -y libpq-dev gcc
-
+# Install dependencies
 COPY requirements.txt .
-RUN pip install --upgrade pip
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy app code
 COPY . .
 
-EXPOSE 5000
+# Copy and set entrypoint
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
+EXPOSE 5000
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["python", "app.py"]

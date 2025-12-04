@@ -1,22 +1,22 @@
 import os
 import psycopg2
 
-def get_connection():
-    return psycopg2.connect(
+def run_migrations():
+    conn = psycopg2.connect(
         host=os.getenv("POSTGRES_HOST"),
         port=os.getenv("POSTGRES_PORT"),
         user=os.getenv("POSTGRES_USER"),
         password=os.getenv("POSTGRES_PASSWORD"),
         dbname=os.getenv("POSTGRES_DB"),
     )
-
-def get_user(user_id):
-    conn = get_connection()
     cur = conn.cursor()
-    cur.execute("SELECT id, name FROM users WHERE id = %s", (user_id,))
-    row = cur.fetchone()
+
+    with open("init_db.sql", "r") as f:
+        sql = f.read()
+
+    cur.execute(sql)
+    conn.commit()
     conn.close()
 
-    if row:
-        return {"id": row[0], "name": row[1]}
-    return None
+if __name__ == "__main__":
+    run_migrations()

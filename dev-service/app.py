@@ -1,5 +1,5 @@
 from flask import Flask, jsonify
-from db import get_user, init_db
+from db import get_user
 
 app = Flask(__name__)
 
@@ -14,7 +14,5 @@ def user_info(user_id):
 def ping():
     return jsonify({"message": "pong"})
 
-
 if __name__ == "__main__":
-    init_db()
     app.run(host="0.0.0.0", port=5000)
