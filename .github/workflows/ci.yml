@@ -3,7 +3,7 @@ name: Simple Microservice CI
 on:
   push:
     branches:
-      # - main
+      - main
       - "feature/*"
       - "bugfix/*"
       - "hotfix/*"
@@ -22,17 +22,16 @@ jobs:
           POSTGRES_USER: test_user
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: testing_db
-          POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
         options: >-
           --health-cmd="pg_isready -U test_user -d testing_db"
           --health-interval=5s
           --health-timeout=5s
-          --health-retries=5
+          --health-retries=10  
 
     env:
-      POSTGRES_HOST: postgres   # <-- FIXED (Do NOT use localhost)
+      POSTGRES_HOST: localhost   
       POSTGRES_PORT: 5432
       POSTGRES_USER: test_user
       POSTGRES_PASSWORD: postgres
@@ -62,13 +61,18 @@ jobs:
       - name: Run container
         run: |
           docker run -d --name sample_service \
-            --env-file env/test.env \
+            --network=host \             
+            -e POSTGRES_HOST=localhost \
+            -e POSTGRES_PORT=5432 \
+            -e POSTGRES_USER=test_user \
+            -e POSTGRES_PASSWORD=postgres \
+            -e POSTGRES_DB=testing_db \
             -p 5000:5000 \
             sample-service
 
       - name: Wait for service
         run: |
-          for i in {1..15}; do
+          for i in {1..20}; do
             if curl -s http://localhost:5000/ping; then
               echo "Service is up"
               break
@@ -79,6 +83,12 @@ jobs:
 
       - name: Initialize Database
         run: python dev-service/init_db.py
+        env:                    
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: testing_db
 
       - name: Run Tests
         run: |
@@ -96,20 +106,6 @@ jobs:
         with:
           name: test-report
           path: reports/
-
-      - name: Send Test Report Email
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.gmail.com
-          server_port: 465
-          username: ${{ secrets.EMAIL_USERNAME }}
-          password: ${{ secrets.EMAIL_PASSWORD }}
-          subject: "CI Test Report"
-          to: ${{ secrets.EMAIL_TO }}
-          from: ${{ secrets.EMAIL_USERNAME }}
-          content_type: text/html
-          body: "Test report is attached."
-          attachments: reports/test-report.html
 
       - name: Stop Service
         if: always()
