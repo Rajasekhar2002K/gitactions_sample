@@ -7,7 +7,7 @@ def wait_for_postgres():
     while retries > 0:
         try:
             conn = psycopg2.connect(
-                host=os.getenv("POSTGRES_HOST", "localhost"),
+                host=os.getenv("POSTGRES_HOST", "postgres"),
                 port=os.getenv("POSTGRES_PORT", 5432),
                 user=os.getenv("POSTGRES_USER", "test_user"),
                 password=os.getenv("POSTGRES_PASSWORD", "postgres"),
@@ -24,7 +24,7 @@ def wait_for_postgres():
 def run_migrations():
     wait_for_postgres()
     conn = psycopg2.connect(
-        host=os.getenv("POSTGRES_HOST", "localhost"),
+        host=os.getenv("POSTGRES_HOST", "postgres"),
         port=os.getenv("POSTGRES_PORT", 5432),
         user=os.getenv("POSTGRES_USER", "test_user"),
         password=os.getenv("POSTGRES_PASSWORD", "postgres"),
