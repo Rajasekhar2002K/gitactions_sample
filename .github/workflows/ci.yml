@@ -61,7 +61,7 @@ jobs:
       - name: Run container
         run: |
           docker run -d --name sample_service \
-            --network=host \             
+            --network=host \
             -e POSTGRES_HOST=localhost \
             -e POSTGRES_PORT=5432 \
             -e POSTGRES_USER=test_user \
