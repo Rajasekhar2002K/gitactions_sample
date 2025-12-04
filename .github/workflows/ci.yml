@@ -3,7 +3,7 @@ name: Simple Microservice CI
 on:
   push:
     branches:
-      - main
+      # - main
       - "feature/*"
       - "bugfix/*"
       - "hotfix/*"
@@ -22,6 +22,7 @@ jobs:
           POSTGRES_USER: test_user
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: testing_db
+          POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
         options: >-

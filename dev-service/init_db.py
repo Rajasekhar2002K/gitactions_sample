@@ -3,7 +3,7 @@ import time
 import psycopg2
 
 def wait_for_postgres():
-    retries = 10
+    retries = 20
     while retries > 0:
         try:
             conn = psycopg2.connect(
