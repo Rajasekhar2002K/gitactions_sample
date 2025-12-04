@@ -67,6 +67,21 @@ jobs:
           name: test-report
           path: reports/
 
+      - name: Send Test Report via Email
+        if: always()  # Run even if previous steps failed
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "CI Test Report"
+          to: ${{ secrets.EMAIL_TO }}
+          from: ${{ secrets.EMAIL_USERNAME }}
+          content_type: text/html
+          body: |
+            $(cat reports/test-report.html)
+            
       # Stop container
       - name: Stop Service
         run: docker stop sample_service
