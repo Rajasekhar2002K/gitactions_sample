@@ -31,31 +31,27 @@ jobs:
           --health-retries=5
 
     env:
-      POSTGRES_HOST: localhost
+      POSTGRES_HOST: postgres   # must match service name
       POSTGRES_PORT: 5432
       POSTGRES_USER: test_user
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: testing_db
 
     steps:
-      # 1. Checkout repo
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      # 2. Setup Python
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.12"
 
-      # 3. Install dependencies
       - name: Install dependencies
         run: |
           pip install --upgrade pip
           pip install -r dev-service/requirements.txt
           pip install pytest pytest-html pytest-cov requests psycopg2-binary
 
-      # 4. Wait for Postgres to be ready
       - name: Wait for PostgreSQL
         run: |
           for i in {1..30}; do
@@ -68,12 +64,35 @@ jobs:
             sleep 2
           done
 
-      # 5. Initialize DB
-      - name: Initialize Database
-        run: |
-          python dev-service/init_db.py
+      # Build and run the service container
+      - name: Build service Docker image
+        run: docker build -t sample-service ./dev-service
 
-      # 6. Run Tests
+      - name: Run service container
+        run: |
+          docker run -d --name sample_service \
+            -e POSTGRES_HOST=$POSTGRES_HOST \
+            -e POSTGRES_PORT=$POSTGRES_PORT \
+            -e POSTGRES_USER=$POSTGRES_USER \
+            -e POSTGRES_PASSWORD=$POSTGRES_PASSWORD \
+            -e POSTGRES_DB=$POSTGRES_DB \
+            -p 5000:5000 \
+            sample-service
+
+      - name: Wait for service
+        run: |
+          for i in {1..30}; do
+            if curl -s http://localhost:5000/ping; then
+              echo "Service is up"
+              exit 0
+            fi
+            echo "Waiting for service..."
+            sleep 2
+          done
+          echo "Service failed to start"
+          docker logs sample_service
+          exit 1
+
       - name: Run Tests
         run: |
           mkdir -p reports
@@ -84,7 +103,6 @@ jobs:
             --cov-report=xml
         continue-on-error: true
 
-      # 7. Upload Test Report
       - name: Upload Test Report
         uses: actions/upload-artifact@v4
         if: always()
@@ -92,10 +110,9 @@ jobs:
           name: test-report
           path: reports/
 
-      # 8. Send Test Report Email
       - name: Send Test Report Email
-        # if: always()
         uses: dawidd6/action-send-mail@v3
+        # if: always()
         with:
           server_address: smtp.gmail.com
           server_port: 465
