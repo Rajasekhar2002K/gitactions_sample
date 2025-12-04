@@ -51,6 +51,20 @@ jobs:
           pip install --upgrade pip
           pip install -r dev-service/requirements.txt
           pip install pytest pytest-html pytest-cov requests psycopg2-binary
+      
+      - name: Wait for service
+        run: |
+          for i in {1..30}; do
+            if curl -s http://localhost:5000/ping; then
+              echo "Service is up"
+              exit 0
+            fi
+            echo "Waiting for service..."
+            sleep 2
+          done
+          echo "Service failed to start"
+          docker logs sample_service
+          exit 1
 
       - name: Initialize Database
         run: python dev-service/init_db.py
