@@ -5,8 +5,8 @@ on:
     branches: 
       - main
       - "feature/*"
-      - "bugfix/*"
-      - "hotfix/*"
+      # - "bugfix/*"
+      # - "hotfix/*"
   pull_request:
     branches:
       - main
