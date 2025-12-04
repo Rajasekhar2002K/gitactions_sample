@@ -3,6 +3,8 @@ import time
 
 BASE_URL = "http://localhost:5000"
 
+# http://sample-service:5000/ping
+
 def test_ping():
     time.sleep(1)
     res = requests.get(f"{BASE_URL}/ping")

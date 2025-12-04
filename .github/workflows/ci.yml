@@ -31,7 +31,7 @@ jobs:
           --health-retries=5
 
     env:
-      POSTGRES_HOST: localhost
+      POSTGRES_HOST: postgres   # <-- FIXED (Do NOT use localhost)
       POSTGRES_PORT: 5432
       POSTGRES_USER: test_user
       POSTGRES_PASSWORD: postgres
@@ -51,16 +51,13 @@ jobs:
           pip install --upgrade pip
           pip install -r dev-service/requirements.txt
           pip install pytest pytest-html pytest-cov requests psycopg2-binary
-      
-      # Cleanup existing container (if any)
+
       - name: Cleanup existing container
         run: docker rm -f sample_service || true
 
-      # Build service docker image
       - name: Build Service
         run: docker build -t sample-service ./dev-service
 
-      # Run service container
       - name: Run container
         run: |
           docker run -d --name sample_service \
@@ -68,7 +65,6 @@ jobs:
             -p 5000:5000 \
             sample-service
 
-      # Wait for service to be ready
       - name: Wait for service
         run: |
           for i in {1..15}; do
@@ -102,7 +98,6 @@ jobs:
 
       - name: Send Test Report Email
         uses: dawidd6/action-send-mail@v3
-        # if: always()
         with:
           server_address: smtp.gmail.com
           server_port: 465
