@@ -106,6 +106,20 @@ jobs:
         with:
           name: test-report
           path: reports/
+          
+      - name: Send Test Report Email
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "CI Test Report"
+          to: ${{ secrets.EMAIL_TO }}
+          from: ${{ secrets.EMAIL_USERNAME }}
+          content_type: text/html
+          body: "Test report is attached."
+          attachments: reports/test-report.html
 
       - name: Stop Service
         if: always()
