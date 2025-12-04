@@ -2,17 +2,23 @@ FROM python:3.9-slim
 
 WORKDIR /app
 
-# Install dependencies
+# Install PostgreSQL client and build dependencies
+RUN apt-get update && \
+    apt-get install -y postgresql-client gcc libpq-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy app code
+# Copy application
 COPY . .
 
-# Copy and set entrypoint
+# Copy entrypoint
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 EXPOSE 5000
+
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["python", "app.py"]

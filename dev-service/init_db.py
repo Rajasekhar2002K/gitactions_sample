@@ -3,11 +3,11 @@ import psycopg2
 
 def run_migrations():
     conn = psycopg2.connect(
-        host=os.getenv("POSTGRES_HOST", default="postgres"),
-        port=os.getenv("POSTGRES_PORT", default=5432),
-        user=os.getenv("POSTGRES_USER", default="test_user"),
-        password=os.getenv("POSTGRES_PASSWORD", default="postgres"),
-        dbname=os.getenv("POSTGRES_DB", default="testing_db"),
+        host=os.getenv("POSTGRES_HOST", "postgres"),
+        port=os.getenv("POSTGRES_PORT", 5432),
+        user=os.getenv("POSTGRES_USER", "test_user"),
+        password=os.getenv("POSTGRES_PASSWORD", "postgres"),
+        dbname=os.getenv("POSTGRES_DB", "testing_db"),
     )
     cur = conn.cursor()
 
