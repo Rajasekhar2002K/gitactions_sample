@@ -25,60 +25,55 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd="pg_isready -U test_user"
+          --health-cmd="pg_isready -U test_user -d testing_db"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
 
     env:
-      POSTGRES_HOST: postgres
+      POSTGRES_HOST: localhost
       POSTGRES_PORT: 5432
       POSTGRES_USER: test_user
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: testing_db
 
     steps:
+      # 1. Checkout repo
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      # 2. Setup Python
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.12"
 
-      - name: Install test deps
+      # 3. Install dependencies
+      - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install pytest requests pytest-html pytest-cov psycopg2-binary
+          pip install -r dev-service/requirements.txt
+          pip install pytest pytest-html pytest-cov requests psycopg2-binary
 
-      - name: Build service docker image
-        run: docker build -t sample-service ./dev-service
-
-      - name: Run service container
-        run: |
-          docker run -d --name sample_service \
-            -e POSTGRES_HOST=$POSTGRES_HOST \
-            -e POSTGRES_PORT=$POSTGRES_PORT \
-            -e POSTGRES_USER=$POSTGRES_USER \
-            -e POSTGRES_PASSWORD=$POSTGRES_PASSWORD \
-            -e POSTGRES_DB=$POSTGRES_DB \
-            -p 5000:5000 \
-            sample-service
-
-      - name: Wait for service
+      # 4. Wait for Postgres to be ready
+      - name: Wait for PostgreSQL
         run: |
           for i in {1..30}; do
-            if curl -s http://localhost:5000/ping; then
-              echo "Service is up"
-              exit 0
+            pg_isready -h $POSTGRES_HOST -p $POSTGRES_PORT -U $POSTGRES_USER
+            if [ $? -eq 0 ]; then
+              echo "PostgreSQL is ready"
+              break
             fi
-            echo "Waiting for service..."
+            echo "Waiting for PostgreSQL..."
             sleep 2
           done
-          echo "Service failed to start"
-          docker logs sample_service
-          exit 1
 
+      # 5. Initialize DB
+      - name: Initialize Database
+        run: |
+          python dev-service/init_db.py
+
+      # 6. Run Tests
       - name: Run Tests
         run: |
           mkdir -p reports
@@ -89,6 +84,7 @@ jobs:
             --cov-report=xml
         continue-on-error: true
 
+      # 7. Upload Test Report
       - name: Upload Test Report
         uses: actions/upload-artifact@v4
         if: always()
@@ -96,8 +92,9 @@ jobs:
           name: test-report
           path: reports/
 
+      # 8. Send Test Report Email
       - name: Send Test Report Email
-        # if: always( )
+        # if: always()
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
