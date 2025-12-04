@@ -79,8 +79,8 @@ jobs:
           to: ${{ secrets.EMAIL_TO }}
           from: ${{ secrets.EMAIL_USERNAME }}
           content_type: text/html
-          body: |
-            $(cat reports/test-report.html)
+          body: "Test report attached"
+          attachments: reports/test-report.html
             
       # Stop container
       - name: Stop Service
