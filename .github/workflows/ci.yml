@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - main
-      - "feature/*"
-      - "bugfix/*"
-      - "hotfix/*"
   pull_request:
     branches:
       - main
@@ -117,7 +114,7 @@ jobs:
           subject: "CI Test Report"
           to: ${{ secrets.EMAIL_TO }}
           from: ${{ secrets.EMAIL_USERNAME }}
-          content_type: text/html
+          # content_type: text/html
           body: "Test report is attached."
           attachments: reports/test-report.html
 
