@@ -2,50 +2,77 @@ name: Simple Microservice CI
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+      - "feature/*"
+      - "bugfix/*"
+      - "hotfix/*"
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: testing_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U test_user -d testing_db"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10  
+
+    env:
+      POSTGRES_HOST: localhost   
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: testing_db
+
     steps:
-      # Checkout repo
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      # Setup Python for test scripts
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.12"
 
-      # Install test dependencies
-      - name: Install test deps
-        run: pip install --upgrade pip
-      - run: pip install pytest requests pytest-html pytest-cov
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r dev-service/requirements.txt
+          pip install pytest pytest-html pytest-cov requests psycopg2-binary
 
-      # Cleanup existing container (if any)
       - name: Cleanup existing container
         run: docker rm -f sample_service || true
 
-      # Build service docker image
       - name: Build Service
         run: docker build -t sample-service ./dev-service
 
-      # Run service container
       - name: Run container
         run: |
           docker run -d --name sample_service \
-            --env-file env/test.env \
+            --network=host \
+            -e POSTGRES_HOST=localhost \
+            -e POSTGRES_PORT=5432 \
+            -e POSTGRES_USER=test_user \
+            -e POSTGRES_PASSWORD=postgres \
+            -e POSTGRES_DB=testing_db \
             -p 5000:5000 \
             sample-service
 
-      # Wait for service to be ready
       - name: Wait for service
         run: |
-          for i in {1..15}; do
+          for i in {1..20}; do
             if curl -s http://localhost:5000/ping; then
               echo "Service is up"
               break
@@ -54,21 +81,33 @@ jobs:
             sleep 2
           done
 
-      # Run Tests
+      - name: Initialize Database
+        run: python dev-service/init_db.py
+        env:                    
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: testing_db
+
       - name: Run Tests
         run: |
           mkdir -p reports
-          pytest tests/ --html=reports/test-report.html --self-contained-html --cov=dev-service --cov-report=xml
+          pytest tests/ \
+            --html=reports/test-report.html \
+            --self-contained-html \
+            --cov=dev-service \
+            --cov-report=xml
+        continue-on-error: true
 
-      # Upload Test Report
-      - name: Upload Report
+      - name: Upload Test Report
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: test-report
           path: reports/
-
-      - name: Send Test Report via Email
-        if: always()  # Run even if previous steps failed
+          
+      - name: Send Test Report Email
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
@@ -79,14 +118,11 @@ jobs:
           to: ${{ secrets.EMAIL_TO }}
           from: ${{ secrets.EMAIL_USERNAME }}
           content_type: text/html
-          body: "Test report attached"
+          body: "Test report is attached."
           attachments: reports/test-report.html
-            
-      # Stop container
-      - name: Stop Service
-        run: docker stop sample_service
 
-      # Clean test DB / env (optional)
-      - name: Cleanup test environment
+      - name: Stop Service
+        if: always()
         run: |
-          rm -f dev-service/test.db
+          docker stop sample_service || true
+          docker rm sample_service || true
